@@ -3,9 +3,10 @@ package main
 import (
 	durls "durls/internal/durls"
 	"fmt"
+	"log"
+
 	"github.com/kataras/iris"
 	_ "github.com/kataras/iris/context"
-	"log"
 )
 
 var configurationAPIKey = "0000"

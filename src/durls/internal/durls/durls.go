@@ -1,14 +1,16 @@
 package durls
 
 import (
-	"github.com/martinlindhe/base36"
 	"log"
 	"strings"
+
+	"github.com/martinlindhe/base36"
 
 	skip32 "github.com/dgryski/go-skip32"
 
 	"encoding/binary"
 	"errors"
+
 	"github.com/etcd-io/bbolt"
 )
 
