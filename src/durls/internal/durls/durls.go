@@ -12,43 +12,49 @@ import (
 	"github.com/etcd-io/bbolt"
 )
 
-var gdb *bbolt.DB
+// Session The main holder of information for current DB session
+type Session struct {
+	db         *bbolt.DB
+	obfuscator *skip32.Skip32
+}
+
 var bucketName = []byte("urls")
-var key = []byte("0123456789")
-var obfsucator *skip32.Skip32
 var errNotFound = errors.New("durls: not found")
 
-// OpenDB Opens the main DB
-func OpenDB(filename string) {
+// OpenSession Opens the main session
+func OpenSession(dbName string, obsKey []byte) *Session {
 	// Open the my.db data file in your current directory.
 	// It will be created if it doesn't exist.
-	db, err := bbolt.Open(filename, 0600, nil)
-	gdb = db
+	session := new(Session)
+	db, err := bbolt.Open(dbName, 0600, nil)
+	session.db = db
 	if err != nil {
 		log.Fatal(err)
 	}
-	obfsucator, err = skip32.New(key)
+	obfuscator, err := skip32.New(obsKey)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = gdb.Update(func(tx *bbolt.Tx) error {
+	session.obfuscator = obfuscator
+	err = session.db.Update(func(tx *bbolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists(bucketName)
 		return err
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
+	return session
 	//defer db.Close()
 }
 
 // Shorten shortens URL
-func Shorten(URL string) string {
+func (session *Session) Shorten(URL string) string {
 	var id32o uint32
-	gdb.Update(func(tx *bbolt.Tx) error {
+	session.db.Update(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket(bucketName)
 		id, _ := bucket.NextSequence()
 		id32 := uint32(id)
-		id32o = obfsucator.Obfus(id32)
+		id32o = session.obfuscator.Obfus(id32)
 		array := make([]byte, 4)
 		binary.LittleEndian.PutUint32(array, id32)
 		return bucket.Put(array, []byte(URL))
@@ -57,13 +63,13 @@ func Shorten(URL string) string {
 }
 
 // Lookup lookups URL
-func Lookup(shortURL string) (string, error) {
+func (session *Session) Lookup(shortURL string) (string, error) {
 	var url string
 	var err error
-	gdb.View(func(tx *bbolt.Tx) error {
+	session.db.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket(bucketName)
 		id32o := uint32(base36.Decode(shortURL))
-		id32 := obfsucator.Unobfus(id32o)
+		id32 := session.obfuscator.Unobfus(id32o)
 		array := make([]byte, 4)
 		binary.LittleEndian.PutUint32(array, id32)
 		urlBytes := bucket.Get(array)

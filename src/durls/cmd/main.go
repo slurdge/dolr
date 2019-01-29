@@ -2,15 +2,19 @@ package main
 
 import (
 	durls "durls/internal/durls"
+	"fmt"
 	"github.com/kataras/iris"
 	_ "github.com/kataras/iris/context"
 	"log"
 )
 
 var configurationAPIKey = "0000"
+var obsfucatorKey = []byte("0123456789")
+var databaseName = "main.db"
 var hostname = "http://127.0.0.1:8080"
+var listenAddr = ":8080"
 
-func shortenRoute(ctx iris.Context) {
+func shortenRoute(ctx iris.Context, session *durls.Session) {
 	apiKey := ctx.URLParam("key")
 	if apiKey != configurationAPIKey {
 		ctx.StatusCode(401)
@@ -18,8 +22,7 @@ func shortenRoute(ctx iris.Context) {
 	}
 	url := ctx.URLParam("url")
 	responseType := ctx.URLParamDefault("response_type", "plain_text")
-	log.Println(apiKey, url, responseType)
-	short := hostname + "/" + durls.Shorten(url)
+	short := hostname + "/" + session.Shorten(url)
 	if responseType == "json" {
 		ctx.JSON(iris.Map{
 			"action": "shorten",
@@ -31,7 +34,7 @@ func shortenRoute(ctx iris.Context) {
 	}
 }
 
-func lookupRoute(ctx iris.Context) {
+func lookupRoute(ctx iris.Context, session *durls.Session) {
 	apiKey := ctx.URLParam("key")
 	if apiKey != configurationAPIKey {
 		ctx.StatusCode(401)
@@ -39,7 +42,7 @@ func lookupRoute(ctx iris.Context) {
 	}
 	urlEnding := ctx.URLParam("url_ending")
 	responseType := ctx.URLParamDefault("response_type", "plain_text")
-	full, err := durls.Lookup(urlEnding)
+	full, err := session.Lookup(urlEnding)
 	if err != nil {
 		ctx.StatusCode(404)
 		return
@@ -55,9 +58,9 @@ func lookupRoute(ctx iris.Context) {
 	}
 }
 
-func redirectRoute(ctx iris.Context) {
+func redirectRoute(ctx iris.Context, session *durls.Session) {
 	url := ctx.Params().Get("url")
-	full, err := durls.Lookup(url)
+	full, err := session.Lookup(url)
 	if err != nil {
 		ctx.StatusCode(404)
 		return
@@ -67,11 +70,17 @@ func redirectRoute(ctx iris.Context) {
 
 func main() {
 	log.Println("Starting program...")
-	durls.OpenDB("test.db")
-	log.Println("Running on http://127.0.0.1:8080")
+	session := durls.OpenSession(databaseName, obsfucatorKey)
+	log.Println(fmt.Sprintf("Running on %v", hostname))
 	app := iris.Default()
-	app.Get("/api/v2/action/shorten", shortenRoute)
-	app.Get("/api/v2/action/lookup", lookupRoute)
-	app.Get("/{url: string regexp([a-z0-9]{6,7})}", redirectRoute)
-	app.Run(iris.Addr("127.0.0.1:8080"))
+	app.Get("/api/v2/action/shorten", func(ctx iris.Context) {
+		shortenRoute(ctx, session)
+	})
+	app.Get("/api/v2/action/lookup", func(ctx iris.Context) {
+		lookupRoute(ctx, session)
+	})
+	app.Get("/{url: string regexp([a-z0-9]{6,7})}", func(ctx iris.Context) {
+		redirectRoute(ctx, session)
+	})
+	app.Run(iris.Addr(listenAddr))
 }
