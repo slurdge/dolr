@@ -12,8 +12,11 @@ import (
 var configurationAPIKey = "0000"
 var obsfucatorKey = []byte("0123456789")
 var databaseName = "main.db"
-var hostname = "http://127.0.0.1:8080"
-var listenAddr = ":8080"
+var hostname = "https://durls.test:8080"
+var listenAddr = "localhost:8080"
+var useTLS = false
+var sslKeyFile = "./durls.test-key.pem"
+var sslCertFile = "./durls.test.pem"
 
 func shortenRoute(ctx iris.Context, session *durls.Session) {
 	apiKey := ctx.URLParam("key")
@@ -83,5 +86,10 @@ func main() {
 	app.Get("/{url: string regexp([a-z0-9]{6,7})}", func(ctx iris.Context) {
 		redirectRoute(ctx, session)
 	})
-	app.Run(iris.Addr(listenAddr))
+	if !useTLS {
+		app.Run(iris.Addr(listenAddr))
+	} else {
+		app.Run(iris.TLS(listenAddr, sslCertFile, sslKeyFile))
+	}
+
 }
