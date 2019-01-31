@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta charset="utf-8">
+    <title>DURLS: Dumb URL Shortener</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="stylesheet" href="css/semantic.flat.min.css">
+    <link rel="stylesheet" href="css/durls.css">
+
+    <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+    <link rel="manifest" href="images/site.webmanifest">
+    <link rel="mask-icon" href="images/safari-pinned-tab.svg" color="#5bbad5">
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="msapplication-config" content="images/browserconfig.xml">
+    <meta name="theme-color" content="#ffffff">
+
+
+</head>
+
+<body style="background-color:rgb(66, 10, 131); background-image: url('images/bg.jpg'); background-size: cover;">
+
+    <!-- Primary Page Layout
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <div class="spacer"></div>
+        <div class="center aligned huge header ui white inverted">
+            <h1>Dumb URL Shortener</h1>
+        </div>
+    <div class="ui container segment" style="opacity: 0.9">
+
+        <form action="/" method="post">
+            <h2 class="ui header">Enter your URL</h2>
+            <div class="ui action fluid input violet form huge">
+                <input class="ui violet" type="text" placeholder="https://www.example.com" name="url">
+                <button class="button violet ui icon right labeled huge" type="submit">Shorten<i class="bolt icon"></i></button>
+            </div>
+        </form>
+        {{ if .shortened }}
+        <h3 class="ui header">Short URL for <i><a href="{{ .full }}">{{ .full }}</a></i></h3>
+        <div class="ui action fluid input small form">
+            <input class="violet" type="text" placeholder="{{ .short }}" value="{{ .short }}" id="short">
+            <button class="button orange ui icon right labeled" id="copy-btn" data-clipboard-target="#short">Copy<i
+                    class="copy icon"></i></button>
+        </div>
+        {{ end }}
+    </div>
+    <!-- End Document
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <script src="js/clipboard.min.js"></script>
+    <script language="javascript">new ClipboardJS('#copy-btn');</script>
+</body>
+
+</html>
