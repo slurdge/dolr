@@ -8,20 +8,23 @@ import (
 
 	"github.com/kataras/iris"
 	_ "github.com/kataras/iris/context"
+	"github.com/tkanos/gonfig"
 )
 
-var configurationAPIKey = "0000"
-var obsfucatorKey = []byte("0123456789")
-var databaseName = "main.db"
-var hostname = "https://durls.test:8080"
-var listenAddr = "localhost:8080"
-var useTLS = true
-var sslKeyFile = "./durls.test-key.pem"
-var sslCertFile = "./durls.test.pem"
+type configuration struct {
+	APIKey        string `env:"API_KEY"`
+	ObsfucatorKey string `env:"OBS_KEY"`
+	Database      string `env:"DATABASE"`
+	Hostname      string `env:"HOSTNAME"`
+	ListenAddr    string `env:"LISTEN_ADDR"`
+	UseTLS        bool
+	SslKeyFile    string
+	SslCertFile   string
+}
 
-func shortenRoute(ctx iris.Context, session *durls.Session) {
-	apiKey := ctx.URLParam("key")
-	if apiKey != configurationAPIKey {
+func shortenRoute(ctx iris.Context, session *durls.Session, apiKey string, hostname string) {
+	apiKeyParam := ctx.URLParam("key")
+	if apiKey != apiKeyParam {
 		ctx.StatusCode(401)
 		return
 	}
@@ -39,9 +42,9 @@ func shortenRoute(ctx iris.Context, session *durls.Session) {
 	}
 }
 
-func lookupRoute(ctx iris.Context, session *durls.Session) {
-	apiKey := ctx.URLParam("key")
-	if apiKey != configurationAPIKey {
+func lookupRoute(ctx iris.Context, session *durls.Session, apiKey string) {
+	apiKeyParam := ctx.URLParam("key")
+	if apiKey != apiKeyParam {
 		ctx.StatusCode(401)
 		return
 	}
@@ -75,14 +78,30 @@ func redirectRoute(ctx iris.Context, session *durls.Session) {
 
 func main() {
 	log.Println("Starting program...")
-	session := durls.OpenSession(databaseName, obsfucatorKey)
-	log.Println(fmt.Sprintf("Running on %v", hostname))
+	configuration := configuration{
+		APIKey:        "0123456789",
+		Database:      "main.db",
+		ObsfucatorKey: "0123456789",
+		ListenAddr:    "127.0.0.1:8080",
+		Hostname:      "http://localhost:8080",
+		UseTLS:        false,
+		SslCertFile:   "",
+		SslKeyFile:    "",
+	}
+	err := gonfig.GetConf("durls.json", &configuration)
+	log.Println(configuration)
+	if err != nil {
+		panic(err)
+	}
+
+	session := durls.OpenSession(configuration.Database, []byte(configuration.ObsfucatorKey))
+	log.Println(fmt.Sprintf("Running on %v", configuration.Hostname))
 	app := iris.Default()
 	app.Get("/api/v2/action/shorten", func(ctx iris.Context) {
-		shortenRoute(ctx, session)
+		shortenRoute(ctx, session, configuration.APIKey, configuration.Hostname)
 	})
 	app.Get("/api/v2/action/lookup", func(ctx iris.Context) {
-		lookupRoute(ctx, session)
+		lookupRoute(ctx, session, configuration.APIKey)
 	})
 	app.Get("/{url: string regexp([a-z0-9]{6,7})}", func(ctx iris.Context) {
 		redirectRoute(ctx, session)
@@ -100,7 +119,7 @@ func main() {
 		if !strings.HasPrefix(url, "http") || strings.TrimSpace(url) == "" {
 			ctx.ViewData("shortened", false)
 		} else {
-			short := hostname + "/" + session.Shorten(url)
+			short := configuration.Hostname + "/" + session.Shorten(url)
 			ctx.ViewData("shortened", true)
 			ctx.ViewData("full", url)
 			ctx.ViewData("short", short)
@@ -108,10 +127,10 @@ func main() {
 		ctx.View("index.html")
 	}
 	app.Post("/", postHandler)
-	if !useTLS {
-		app.Run(iris.Addr(listenAddr))
+	if !configuration.UseTLS {
+		app.Run(iris.Addr(configuration.ListenAddr))
 	} else {
-		app.Run(iris.TLS(listenAddr, sslCertFile, sslKeyFile))
+		app.Run(iris.TLS(configuration.ListenAddr, configuration.SslCertFile, configuration.SslKeyFile))
 	}
 
 }
