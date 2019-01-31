@@ -4,6 +4,7 @@ import (
 	durls "durls/internal/durls"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/kataras/iris"
 	_ "github.com/kataras/iris/context"
@@ -14,7 +15,7 @@ var obsfucatorKey = []byte("0123456789")
 var databaseName = "main.db"
 var hostname = "https://durls.test:8080"
 var listenAddr = "localhost:8080"
-var useTLS = false
+var useTLS = true
 var sslKeyFile = "./durls.test-key.pem"
 var sslCertFile = "./durls.test.pem"
 
@@ -86,6 +87,27 @@ func main() {
 	app.Get("/{url: string regexp([a-z0-9]{6,7})}", func(ctx iris.Context) {
 		redirectRoute(ctx, session)
 	})
+	tmpl := iris.HTML("./templates", ".html").Reload(true)
+	app.RegisterView(tmpl)
+	app.StaticWeb("/", "./static")
+	indexHandler := func(ctx iris.Context) {
+		ctx.ViewData("shortened", false)
+		ctx.View("index.html")
+	}
+	app.Get("/", indexHandler)
+	postHandler := func(ctx iris.Context) {
+		url := ctx.PostValue("url")
+		if !strings.HasPrefix(url, "http") || strings.TrimSpace(url) == "" {
+			ctx.ViewData("shortened", false)
+		} else {
+			short := hostname + "/" + session.Shorten(url)
+			ctx.ViewData("shortened", true)
+			ctx.ViewData("full", url)
+			ctx.ViewData("short", short)
+		}
+		ctx.View("index.html")
+	}
+	app.Post("/", postHandler)
 	if !useTLS {
 		app.Run(iris.Addr(listenAddr))
 	} else {
