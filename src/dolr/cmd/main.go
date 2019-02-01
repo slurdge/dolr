@@ -4,7 +4,6 @@ import (
 	dolr "dolr/internal/dolr"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/kataras/iris"
 	_ "github.com/kataras/iris/context"
@@ -30,16 +29,19 @@ func shortenRoute(ctx iris.Context, session *dolr.Session, apiKey string, hostna
 	}
 	url := ctx.URLParam("url")
 	responseType := ctx.URLParamDefault("response_type", "plain_text")
-	short := hostname + "/" + session.Shorten(url)
-	if responseType == "json" {
-		ctx.JSON(iris.Map{
-			"action": "shorten",
-			"result": short})
-	} else if responseType == "plain_text" {
-		ctx.Text(short)
-	} else {
-		ctx.StatusCode(400)
+	short, err := session.Shorten(url)
+	if err != nil {
+		if responseType == "json" {
+			ctx.JSON(iris.Map{
+				"action": "shorten",
+				"result": short})
+		} else if responseType == "plain_text" {
+			ctx.Text(short)
+		} else {
+			ctx.StatusCode(400)
+		}
 	}
+	ctx.StatusCode(400)
 }
 
 func lookupRoute(ctx iris.Context, session *dolr.Session, apiKey string) {
@@ -74,6 +76,19 @@ func redirectRoute(ctx iris.Context, session *dolr.Session) {
 		return
 	}
 	ctx.Redirect(full)
+}
+
+func postRoute(ctx iris.Context, session *dolr.Session, hostname string) {
+	url := ctx.PostValue("url")
+	short, err := session.Shorten(url)
+	if err == nil {
+		ctx.ViewData("shortened", true)
+		ctx.ViewData("full", url)
+		ctx.ViewData("short", hostname+"/"+short)
+	} else {
+		ctx.ViewData("shortened", false)
+	}
+	ctx.View("index.html")
 }
 
 func main() {
@@ -114,19 +129,9 @@ func main() {
 		ctx.View("index.html")
 	}
 	app.Get("/", indexHandler)
-	postHandler := func(ctx iris.Context) {
-		url := ctx.PostValue("url")
-		if !strings.HasPrefix(url, "http") || strings.TrimSpace(url) == "" {
-			ctx.ViewData("shortened", false)
-		} else {
-			short := configuration.Hostname + "/" + session.Shorten(url)
-			ctx.ViewData("shortened", true)
-			ctx.ViewData("full", url)
-			ctx.ViewData("short", short)
-		}
-		ctx.View("index.html")
-	}
-	app.Post("/", postHandler)
+	app.Post("/", func(ctx iris.Context) {
+		postRoute(ctx, session, configuration.Hostname)
+	})
 	if !configuration.UseTLS {
 		app.Run(iris.Addr(configuration.ListenAddr))
 	} else {

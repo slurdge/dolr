@@ -2,6 +2,7 @@ package dorl
 
 import (
 	"log"
+	"net/url"
 	"strings"
 
 	"github.com/martinlindhe/base36"
@@ -22,6 +23,7 @@ type Session struct {
 
 var bucketName = []byte("urls")
 var errNotFound = errors.New("dorl: not found")
+var errInvalid = errors.New("dorl: invalid URL")
 
 // OpenSession Opens the main session
 func OpenSession(dbName string, obsKey []byte) *Session {
@@ -50,7 +52,11 @@ func OpenSession(dbName string, obsKey []byte) *Session {
 }
 
 // Shorten shortens URL
-func (session *Session) Shorten(URL string) string {
+func (session *Session) Shorten(URL string) (string, error) {
+	_, err := url.ParseRequestURI(URL)
+	if err != nil {
+		return "", err
+	}
 	var id32o uint32
 	session.db.Update(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket(bucketName)
@@ -61,7 +67,7 @@ func (session *Session) Shorten(URL string) string {
 		binary.LittleEndian.PutUint32(array, id32)
 		return bucket.Put(array, []byte(URL))
 	})
-	return strings.ToLower(base36.Encode(uint64(id32o)))
+	return strings.ToLower(base36.Encode(uint64(id32o))), nil
 }
 
 // Lookup lookups URL
