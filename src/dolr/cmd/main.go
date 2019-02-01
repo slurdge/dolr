@@ -104,7 +104,6 @@ func main() {
 		SslKeyFile:    "",
 	}
 	err := gonfig.GetConf("dolr.json", &configuration)
-	log.Println(configuration)
 	if err != nil {
 		panic(err)
 	}
