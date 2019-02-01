@@ -1,7 +1,7 @@
 package main
 
 import (
-	durls "durls/internal/durls"
+	dolr "dolr/internal/dolr"
 	"fmt"
 	"log"
 	"strings"
@@ -22,7 +22,7 @@ type configuration struct {
 	SslCertFile   string
 }
 
-func shortenRoute(ctx iris.Context, session *durls.Session, apiKey string, hostname string) {
+func shortenRoute(ctx iris.Context, session *dolr.Session, apiKey string, hostname string) {
 	apiKeyParam := ctx.URLParam("key")
 	if apiKey != apiKeyParam {
 		ctx.StatusCode(401)
@@ -42,7 +42,7 @@ func shortenRoute(ctx iris.Context, session *durls.Session, apiKey string, hostn
 	}
 }
 
-func lookupRoute(ctx iris.Context, session *durls.Session, apiKey string) {
+func lookupRoute(ctx iris.Context, session *dolr.Session, apiKey string) {
 	apiKeyParam := ctx.URLParam("key")
 	if apiKey != apiKeyParam {
 		ctx.StatusCode(401)
@@ -66,7 +66,7 @@ func lookupRoute(ctx iris.Context, session *durls.Session, apiKey string) {
 	}
 }
 
-func redirectRoute(ctx iris.Context, session *durls.Session) {
+func redirectRoute(ctx iris.Context, session *dolr.Session) {
 	url := ctx.Params().Get("url")
 	full, err := session.Lookup(url)
 	if err != nil {
@@ -88,13 +88,13 @@ func main() {
 		SslCertFile:   "",
 		SslKeyFile:    "",
 	}
-	err := gonfig.GetConf("durls.json", &configuration)
+	err := gonfig.GetConf("dolr.json", &configuration)
 	log.Println(configuration)
 	if err != nil {
 		panic(err)
 	}
 
-	session := durls.OpenSession(configuration.Database, []byte(configuration.ObsfucatorKey))
+	session := dolr.OpenSession(configuration.Database, []byte(configuration.ObsfucatorKey))
 	log.Println(fmt.Sprintf("Running on %v", configuration.Hostname))
 	app := iris.Default()
 	app.Get("/api/v2/action/shorten", func(ctx iris.Context) {

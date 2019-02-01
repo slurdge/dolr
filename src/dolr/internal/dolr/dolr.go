@@ -1,4 +1,4 @@
-package durls
+package dorl
 
 import (
 	"log"
@@ -21,7 +21,7 @@ type Session struct {
 }
 
 var bucketName = []byte("urls")
-var errNotFound = errors.New("durls: not found")
+var errNotFound = errors.New("dorl: not found")
 
 // OpenSession Opens the main session
 func OpenSession(dbName string, obsKey []byte) *Session {
