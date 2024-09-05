@@ -28,7 +28,6 @@ RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /app/dolr ./cmd
 
 # Copy additional files required in the final image.
 RUN cp dolr.example.json /app/dolr.json
-RUN cp -r static templates /app/
 
 ############################
 # STEP 2 build a small image
