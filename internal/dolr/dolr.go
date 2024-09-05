@@ -12,7 +12,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/etcd-io/bbolt"
+	"go.etcd.io/bbolt"
 )
 
 // Session The main holder of information for current DB session

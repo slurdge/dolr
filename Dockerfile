@@ -10,22 +10,25 @@ RUN apk update && apk add --no-cache git
 # Create appuser.
 RUN adduser -D -g '' appuser
 
-WORKDIR $GOPATH/src/dolr/
-COPY src/dolr .
+# Set working directory.
+WORKDIR /app
 
-# Fetch dependencies.
+# Copy go.mod and go.sum first for dependency caching.
+COPY go.mod go.sum ./
 
-# Using go get.
-WORKDIR $GOPATH/src/dolr/cmd
-RUN go get -d -v
+# Download dependencies.
+RUN go mod download
 
-# Using go mod.
-# RUN go mod download
+# Copy the rest of the application source code.
+COPY . ./
 
-# Build the binary.
-RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/dolr
-RUN cp dolr.example.json /go/bin/dolr.json
-RUN cp -r static templates /go/bin/
+# Build the binary for the target platform.
+# GOARCH and GOOS will be set automatically by Docker Buildx depending on the platform target.
+RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /app/dolr ./cmd
+
+# Copy additional files required in the final image.
+RUN cp dolr.example.json /app/dolr.json
+RUN cp -r static templates /app/
 
 ############################
 # STEP 2 build a small image
@@ -35,17 +38,19 @@ FROM alpine
 # Import the user and group files from the builder.
 COPY --from=builder /etc/passwd /etc/passwd
 
-# Copy our static executable.
-COPY --from=builder /go/bin /go/bin
+# Copy the built application and necessary files from the builder.
+COPY --from=builder /app /app
 
-WORKDIR /go/bin/
+WORKDIR /app
 
+# Set file permissions to appuser.
 RUN chown -R appuser .
 
-# Use an unprivileged user.
+# Use an unprivileged user for security.
 USER appuser
 
+# Expose the necessary port.
 EXPOSE 8080
 
-# Run the hello binary.
-ENTRYPOINT ["/go/bin/dolr"]
+# Run the dolr binary.
+ENTRYPOINT ["/app/dolr"]

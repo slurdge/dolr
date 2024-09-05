@@ -103,5 +103,6 @@ $RECYCLE.BIN/
 
 *.pem
 .vscode/launch.json
-src/dolr/cmd/main.db
 src/github.com/*
+main.db
+dolr.json

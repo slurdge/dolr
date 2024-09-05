@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kataras/iris"
-	_ "github.com/kataras/iris/context"
+	"github.com/kataras/iris/v12"
 	"github.com/tkanos/gonfig"
 )
 
@@ -122,7 +121,7 @@ func main() {
 	})
 	tmpl := iris.HTML("./templates", ".html").Reload(true)
 	app.RegisterView(tmpl)
-	app.StaticWeb("/", "./static")
+	app.HandleDir("/", "./static")
 	indexHandler := func(ctx iris.Context) {
 		ctx.ViewData("shortened", false)
 		ctx.View("index.html")
