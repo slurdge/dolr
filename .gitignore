@@ -102,3 +102,6 @@ $RECYCLE.BIN/
 # End of https://www.gitignore.io/api/go,linux,macos,windows,visualstudiocode
 
 *.pem
+.vscode/launch.json
+src/dolr/cmd/main.db
+src/github.com/*
